@@ -52,6 +52,7 @@ body::before, .hero-glow { display: none !important; }
 .primary-nav a { color: var(--ink) !important; font-size: .86rem; font-weight: 500; white-space: nowrap; }
 .primary-nav a:focus-visible, .nav-toggle:focus-visible, .header-cta:focus-visible { outline: 2px solid var(--forest); outline-offset: 3px; }
 .header-cta-mobile { display: none; }
+.mobile-zalo-cta { display: none !important; }
 .primary-nav a::after { background: var(--forest); height: 1px; }
 .scroll-progress { background: var(--moss) !important; }
 .scroll-progress i { background: var(--forest) !important; }
