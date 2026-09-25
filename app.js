@@ -36,10 +36,11 @@ function setupMobileNavigation() {
   const menu = document.querySelector(".primary-nav");
   if (!toggle || !menu) return;
 
-  const mobileQuery = window.matchMedia("(max-width: 900px)");
+  const mobileQuery = window.matchMedia("(max-width: 1100px)");
   const syncMenu = (open) => {
     const state = menuAccessibilityState(mobileQuery.matches, open);
     menu.dataset.open = String(open);
+    toggle.setAttribute("aria-label", open ? "Đóng điều hướng" : "Mở điều hướng");
     menu.inert = state.inert;
     if (state.ariaHidden === null) {
       menu.removeAttribute("aria-hidden");
@@ -60,6 +61,20 @@ function setupMobileNavigation() {
     if (!event.target.closest("a")) return;
     toggle.setAttribute("aria-expanded", "false");
     syncMenu(false);
+  });
+
+  document.addEventListener("click", (event) => {
+    if (mobileQuery.matches && !menu.contains(event.target) && !toggle.contains(event.target)) {
+      toggle.setAttribute("aria-expanded", "false");
+      syncMenu(false);
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || toggle.getAttribute("aria-expanded") !== "true") return;
+    toggle.setAttribute("aria-expanded", "false");
+    syncMenu(false);
+    toggle.focus();
   });
 
   mobileQuery.addEventListener("change", () => {
@@ -107,76 +122,32 @@ function setupPluginSpotlight() {
   const labels = [...document.querySelectorAll(".plugin-map-orbit span")];
   if (!layout || cards.length !== labels.length || !cards.length) return;
 
-  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-  let activeIndex = 0;
-  let hovered = false;
-  let focused = false;
-  let inView = true;
-  let timer;
-
   const activate = (index) => {
-    cards[activeIndex].classList.remove("is-active");
-    labels[activeIndex].classList.remove("is-active");
-    activeIndex = index;
-    cards[index].classList.add("is-active");
-    labels[index].classList.add("is-active");
+    cards.forEach((card, cardIndex) => card.classList.toggle("is-active", cardIndex === index));
+    labels.forEach((label, labelIndex) => label.classList.toggle("is-active", labelIndex === index));
   };
 
-  const syncTimer = () => {
-    const shouldRun = !reducedMotion.matches && inView && !hovered && !focused && !document.hidden;
-    if (!shouldRun && timer) {
-      window.clearInterval(timer);
-      timer = undefined;
-    } else if (shouldRun && !timer) {
-      timer = window.setInterval(() => activate((activeIndex + 1) % cards.length), 2800);
-    }
-  };
-
-  activate(0);
   cards.forEach((card, index) => {
     card.addEventListener("pointerenter", (event) => {
       if (event.pointerType === "touch") return;
-      hovered = true;
       activate(index);
-      syncTimer();
     });
-    card.addEventListener("pointerleave", () => {
-      hovered = false;
-      syncTimer();
-    });
-    card.addEventListener("focusin", () => {
-      focused = true;
-      activate(index);
-      syncTimer();
-    });
+    card.addEventListener("pointerleave", () => activate(-1));
+    card.addEventListener("focusin", () => activate(index));
     card.addEventListener("focusout", () => {
-      focused = false;
-      syncTimer();
+      activate(-1);
     });
   });
-
-  if ("IntersectionObserver" in window) {
-    new IntersectionObserver(([entry]) => {
-      inView = entry.isIntersecting;
-      syncTimer();
-    }, { threshold: 0.08 }).observe(layout);
-  }
-
-  reducedMotion.addEventListener("change", syncTimer);
-  document.addEventListener("visibilitychange", syncTimer);
-  syncTimer();
 }
 
 function setupScrollReveals() {
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) return;
 
   const targets = document.querySelectorAll([
-    ".plugin-system-heading", ".plugin-core-map", ".plugin-module-list li",
-    ".operator-copy", ".operator-visual", ".section-heading-row", ".priority-grid li",
-    ".experience-copy", ".industry-grid li", ".brand-logo-card", ".integration-card",
-    ".capability-heading", ".capability-node", ".trio-heading", ".trio-flow li",
-    ".services-heading", ".service-item", ".why-title", ".cases-heading",
-    ".workflow-card", ".zbs-message-card", ".website-card", ".contact-grid",
+    ".plugin-system-heading", ".operator-copy", ".section-heading-row",
+    ".experience-copy", ".integration-heading", ".capability-heading",
+    ".trio-heading", ".services-heading", ".why-title", ".cases-heading",
+    ".workflow-heading", ".website-showcase-heading", ".contact-grid",
   ].join(", "));
 
   const observer = new IntersectionObserver((entries) => {
@@ -187,8 +158,7 @@ function setupScrollReveals() {
     });
   }, { threshold: 0.08, rootMargin: "0px 0px -24px 0px" });
 
-  targets.forEach((target, index) => {
-    target.style.setProperty("--reveal-delay", `${(index % 4) * 65}ms`);
+  targets.forEach((target) => {
     target.classList.add("motion-reveal");
     observer.observe(target);
   });
